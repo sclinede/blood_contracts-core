@@ -10,10 +10,6 @@ module BloodContracts
   module Core; end
 
   class ContractFailure < Core::Type
-    def failure?
-      true
-    end
-
     def errors
       context[:errors].to_h
     end

@@ -23,10 +23,12 @@ module BloodContracts
           attributes.size <= 1
         end
 
-        attr_reader :others
+        attr_reader :sum
         def or_a(other_type)
-          c = Class.new(self)
-          c.instance_variable_set(:@others, self.others.to_a << other_type)
+          c = Class.new(Anything)
+          c.instance_variable_set(
+            :@sum, Set.new([self] + self.sum.to_a << other_type)
+          )
           c
         end
         alias :or_an :or_a
@@ -39,14 +41,13 @@ module BloodContracts
 
         def ===(object)
           return true if (result = super)
-          return result unless refined?(object)
-          return result if object.class.send(:single?)
+          return result unless object.class < BloodContracts::Core::Type
+          if object.class.send(:single?)
+            return result if object.class.sum.to_a.empty?
+            return object.class.sum.any? { |or_type| self == or_type }
+          end
 
-          !!object.attributes.values.find { |sub_type| self === sub_type }
-        end
-
-        def refined?(object)
-          self.class === object
+          object.attributes.values.any? { |sub_type| self === sub_type }
         end
       end
 
@@ -67,7 +68,7 @@ module BloodContracts
       def match
         return @match if defined? @match
         return @match = yield if block_given?
-        value_handler.match
+        @match = value_handler.match
       end
       alias :call :match
 
@@ -75,7 +76,6 @@ module BloodContracts
         value_handler.valid?
       end
       def invalid?; !valid?; end
-      def failure?; false; end
 
       def unpack
         value_handler.unpack
@@ -83,6 +83,14 @@ module BloodContracts
 
       def single?
         Single === value_handler
+      end
+
+      def refined?(object)
+        BloodContracts::Core::Type === object
+      end
+
+      def unpack_refined(value)
+        refined?(value) ? value.unpack : value
       end
 
       protected
@@ -99,29 +107,49 @@ module BloodContracts
         end
 
         def refined?(object)
-          self.class === object
+          @subject.refined?(object)
         end
 
         def unpack_refined(value)
-          refined?(value) ? value.unpack : value
+          @subject.unpack_refined(value)
         end
       end
 
       class Tuple < ValueHandler
-        def match
-          and_matches = attributes.values.map(&:match)
-          return @subject if and_matches.all?(&:valid?)
+        def initialize(*)
+          super
+          @wrapper = Struct.new(*@subject.class.attributes, keyword_init: true)
+        end
 
-          BloodContracts::ContractFailure.new(
-            context: { errors: errors_by_type(and_matches) }
+        def wrap_unpacked(match)
+          @wrapper.new(
+            match.attributes.transform_values(&method(:unpack_refined))
           )
+        end
+
+        def match
+          failed_match =
+            @subject.attributes.values.lazy.map(&:match).find(&:invalid?)
+
+          if failed_match
+            BloodContracts::ContractFailure.new(
+              context: { errors: errors_by_type([failed_match]) }
+            )
+          else
+            @subject
+          end
         end
 
         def unpack
           raise "This is not what you're looking for" if invalid?
 
-          match.attributes.transform_values(&method(:unpack_refined))
+          wrap_unpacked(@subject.match)
         end
+
+        def invalid?
+          BloodContracts::ContractFailure === @subject.match
+        end
+        def valid?; !invalid?; end
 
         def single?
           false
@@ -130,16 +158,16 @@ module BloodContracts
 
       class Single < ValueHandler
         def match
-          return @subject unless refined?(value)
-          return value.match if @subject.class.others.empty?
+          sum = @subject.class.sum.to_a
+          return refined?(value) ? value.match : @subject if sum.empty?
 
-          or_matches = @subject.class.others.map { |type| type.match(value) }
-          if (match = or_matches.find(:valid?))
-            match.merge!(context: { errors: errors_by_type(or_matches) })
+          or_matches = sum.map { |type| type.match(value) }
+          if (match = or_matches.find(&:valid?))
+            match.context.merge!(errors: errors_by_type(or_matches))
             match
           else
             BloodContracts::ContractFailure.new(
-              context: { errors: errors_by_type(and_matches) }
+              context: { errors: errors_by_type(or_matches) }
             )
           end
         end
@@ -149,7 +177,7 @@ module BloodContracts
         end
 
         def unpack
-          raise "This is not what you're looking for" if @subject.invalid?
+          raise "This is not what you're looking for" unless valid?
 
           unpack_refined value
         end
