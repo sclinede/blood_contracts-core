@@ -2,55 +2,74 @@ require 'json'
 require 'blood_contracts/core'
 
 module Types
-  class JSON < BloodType
-    param :json_string
-
+  class JSON < BC::Refined
     def match
-      @parsed = ::JSON.parse(unpack_refined(json_string))
-      self
-    rescue StandardError => error
-      @errors << error
-      self
+      super do
+        begin
+          context[:parsed] = ::JSON.parse(unpack_refined(@value))
+          self
+        rescue StandardError => error
+          failure(error)
+        end
+      end
     end
 
     def unpack
-      @parsed
+      super { |match| match.context[:parsed] }
     end
   end
 
-  class Tariff < BloodType
-    param :json
-
+  class Tariff < BC::Refined
     def match
       super do
-        @parsed = unpack_refined(self.json).slice("cost", "cur").compact
-        @errors << :not_a_tariff if @parsed.size != 2
-        self
+        context[:data] = unpack_refined(@value).slice("cost", "cur").compact
+        context[:tariff_context] = 1
+        return self if context[:data].size == 2
+        failure(:not_a_tariff)
       end
+    end
+
+    def unpack
+      super { |match| match.context[:data] }
     end
   end
 
-  class Error < BloodType
-    param :json
-
+  class Error < BC::Refined
     def match
       super do
-        @parsed = unpack_refined(self.json).slice("code", "message").compact
-        @errors << :not_an_error if @parsed.size != 2
-        self
+        context[:data] = unpack_refined(value).slice("code", "message").compact
+        context[:known_error_context] = 1
+        return self if context[:data].size == 2
+        failure(:not_a_known_error)
       end
+    end
+
+    def unpack
+      super { |match| match.context[:data] }
     end
   end
 
-  class Response < BloodType
-    option :raw, BC::Anything.method(:new)
-    option :parsed, JSON.method(:new), default: -> { raw }
-    option :mapped, (Tariff | Error).method(:new), default: -> { parsed }
-  end
+  Response = BC::Pipe.new(
+    BC::Anything, JSON, (Tariff | Error | Tariff),
+    names: [:raw, :parsed, :mapped]
+  )
+
+  # The same is
+  # Response = BC::Anything.and_then(JSON).and_then(Tariff | Error) do
+  # class Response
+  #   self.names = [:raw, :parsed, :mapped]
+  # end
+  #
+  # or
+  #
+  # Response = BC::Pipe.new(BC::Anything, JSON, Tariff | Error) do
+  #   self.names = [:raw, :parsed, :mapped]
+  # end
 end
 
 def match_response(response)
-  case (match = Types::Response.match(raw: response))
+  match = Types::Response.match(response)
+  case match
   when BC::ContractFailure
     puts "Honeybadger.notify 'Unexpected behavior in Russian Post', context: #{match.context}"
     puts "render json: { errors: 'Ooops! Not working, we've been notified. Please, try again later' }"
@@ -61,12 +80,14 @@ def match_response(response)
     end
   when Types::Tariff
     # работаем с тарифом
-    puts "render json: { tariff: #{match.unpack.mapped} }"
+    puts "match.context # => #{match.context} \n\n"
+    puts "render json: { tariff: #{match.unpack} }"
   when Types::Error
     # работаем с ошибкой, e.g. адрес слишком длинный
-    puts "render json: { errors: [#{match.unpack.mapped.unpack['message']}] } }"
+    puts "match.context # => #{match.context} \n\n"
+    puts "render json: { errors: [#{match.unpack['message']}] } }"
   else
-    binding.irb
+    require'pry';binding.pry
   end
 end
 
@@ -85,7 +106,7 @@ match_response(error_response)
 puts "#{'=' * 20}================================#{'=' * 20}"
 
 
-puts "\n\n\n"
+puts "ss => errors }\n\n\n"
 puts "#{'=' * 20} WHEN UNEXPECTED RESPONSE:      #{'=' * 20}"
 invalid_response = '<xml>'
 match_response(invalid_response)
