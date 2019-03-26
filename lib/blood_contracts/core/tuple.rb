@@ -17,6 +17,10 @@ module BloodContracts
           tuple.instance_variable_set(:@finalized, true)
           tuple
         end
+
+        private
+
+        attr_writer :names
       end
 
       attr_reader :values

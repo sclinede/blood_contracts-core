@@ -14,13 +14,29 @@ module BloodContracts
         alias :> :and_then
 
         def match(*args)
-          new(*args).match
+          if block_given?
+            new(*args).match { |*subargs| yield(*subargs) }
+          else
+            new(*args).match
+          end
         end
         alias :call :match
 
         def ===(object)
           return object.to_ary.any?(self) if object.is_a?(Tuple)
           super
+        end
+
+        def set(**kwargs)
+          kwargs.each do |setting, value|
+            send(:"#{setting}=", value)
+          end
+          self
+        end
+
+        attr_accessor :failure_klass
+        def inherited(new_klass)
+          new_klass.failure_klass ||= ContractFailure
         end
       end
 
@@ -36,6 +52,7 @@ module BloodContracts
       def match
         return @match if defined? @match
         return @match = yield if block_given?
+        return @match = _match if respond_to?(:_match)
         self
       end
       alias :call :match
@@ -48,13 +65,15 @@ module BloodContracts
       def unpack
         raise "This is not what you're looking for" if match.invalid?
         return yield(match) if block_given?
+        return @match = _unpack(match) if respond_to?(:_unpack)
 
         unpack_refined @value
       end
 
-      def failure(error = nil, errors: @errors, context: @context)
+      def failure(error = nil, errors: @errors, context: @context, **kwargs)
+        error ||= kwargs unless kwargs.empty?
         errors << error if error
-        ContractFailure.new(
+        self.class.failure_klass.new(
           { self.class => errors }, context: context
         )
       end
@@ -79,21 +98,25 @@ module BloodContracts
       end
 
       def errors_by_type(matches)
-        Hash[
-          matches.map(&:class).zip(matches.map(&:errors))
-        ].delete_if { |_, errors| errors.empty? }
+        matches.map(&:errors).reduce(:+).delete_if(&:empty?)
       end
     end
 
     class ContractFailure < Refined
-      def initialize(*)
+      def initialize(value = nil, **)
         super
-        @context.merge!(errors: @value.to_h)
+        return unless @value
+        @context[:errors] = (@context[:errors].to_a << @value.to_h)
       end
 
       def errors
-        context[:errors]
+        @context[:errors].to_a
       end
+
+      def errors_h
+        errors.reduce(:merge)
+      end
+      alias :to_h :errors_h
 
       def match
         self

@@ -28,6 +28,14 @@ module BloodContracts
           pipe
         end
         alias :> :and_then
+
+        def inspect
+          self.name || "Pipe(#{self.steps.to_a.join(',')})"
+        end
+
+        private
+
+        attr_writer :names
       end
 
       def match
@@ -43,27 +51,27 @@ module BloodContracts
             end
 
             break match if match.invalid?
-            next refine_value(yield(match)) if block_given?
+            if block_given? && index < self.class.steps.size
+              next refine_value(yield(match))
+            end
             match
           end
         end
       end
 
-      private
-
-      def step_name(index)
+      private def step_name(index)
         self.class.names[index] || index
       end
 
-      def steps_with_names
+      private def steps_with_names
         steps = if self.class.names.empty?
-                  self.class.steps.map(&:to_s)
+                  self.class.steps.map(&:inspect)
                 else
-                  self.class.steps.zip(self.class.names).map { |k, n| "#{k}(#{n})" }
+                  self.class.steps.zip(self.class.names).map { |k, n| "#{k.inspect}(#{n})" }
                 end
       end
 
-      def inspect
+      private def inspect
         "#<pipe #{self.class.name} = #{steps_with_names.join(' > ')} (value=#{@value})>"
       end
     end
