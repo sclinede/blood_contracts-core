@@ -59,6 +59,10 @@ module BloodContracts
         end
       end
 
+      def errors
+        match.errors
+      end
+
       private def step_name(index)
         self.class.names[index] || index
       end

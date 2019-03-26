@@ -51,8 +51,8 @@ module BloodContracts
 
       def match
         return @match if defined? @match
-        return @match = yield if block_given?
-        return @match = _match if respond_to?(:_match)
+        return @match = (yield || self) if block_given?
+        return @match = (_match || self) if respond_to?(:_match)
         self
       end
       alias :call :match

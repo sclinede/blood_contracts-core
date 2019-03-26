@@ -50,6 +50,10 @@ module BloodContracts
         end
       end
 
+      def errors
+        match.errors
+      end
+
       def inspect
         "#<sum #{self.class.name} is #{self.class.sum_of.to_a.join(' or ')} (value=#{@value})>"
       end

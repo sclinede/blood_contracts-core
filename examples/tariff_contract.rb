@@ -4,20 +4,23 @@ require 'blood_contracts/core'
 require "pry"
 
 module Types
-  class JSON < BC::Refined
-    def match
-      super do
-        begin
-          context[:parsed] = ::JSON.parse(unpack_refined(@value))
-          self
-        rescue StandardError => error
-          failure(error)
-        end
-      end
+  class ExceptionCaught < BC::ContractFailure; end
+  class Base < BC::Refined
+    def exception(ex, context: @context)
+      ExceptionCaught.new({ exception: ex }, context: context)
+    end
+  end
+
+  class JSON < Base
+    def _match
+      context[:parsed] = ::JSON.parse(unpack_refined(@value))
+      self
+    rescue StandardError => error
+      exception(error)
     end
 
-    def unpack
-      super { |match| match.context[:parsed] }
+    def _unpack(match)
+      match.context[:parsed]
     end
   end
 end
@@ -34,21 +37,14 @@ module RussianPost
   end
 
   class InputValidationFailure < BC::ContractFailure; end
-  class ExceptionCaught < BC::ContractFailure; end
 
-  class BaseType < BC::Refined
-    def exception(ex, context: @context)
-      ExceptionCaught.new({ exception: ex }, context: context)
-    end
-  end
-
-  class DomesticParcel < BaseType
+  class DomesticParcel < Types::Base
     self.failure_klass = InputValidationFailure
 
     alias :parcel :value
     def _match
       return failure(key: :undef_weight, field: :weight) unless parcel.weight
-      return self if domestic?
+      return if domestic?
       failure(non_domestic_error)
     rescue StandardError => error
       exception(error)
@@ -84,7 +80,7 @@ module RussianPost
     end
   end
 
-  class InternationalParcel < BaseType
+  class InternationalParcel < Types::Base
     self.failure_klass = InputValidationFailure
 
     alias :parcel :value
@@ -125,17 +121,13 @@ module RussianPost
     end
   end
 
-  class RecoverableInputError < BC::Refined
+  class RecoverableInputError < Types::Base
     alias :parsed_response :value
-    def match
-      super do
-        begin
-          next self if [error_code, error_message].all?
-          failure(not_a_recoverable_error)
-        rescue StandardError => error
-          failure(error)
-        end
-      end
+    def _match
+      return if [error_code, error_message].all?
+      failure(key: :not_a_recoverable_error)
+    rescue StandardError => error
+      exception(error)
     end
 
     def error_message
@@ -145,26 +137,18 @@ module RussianPost
 
     private
 
-    def not_a_recoverable_error
-      { key: :not_a_recoverable_error }
-    end
-
     def error_code
       parsed_response.values_at("code", "error-code").compact.first
     end
   end
 
-  class OtherError < BC::Refined
+  class OtherError < Types::Base
     alias :parsed_response :value
-    def match
-      super do
-        begin
-          next failure({key: :not_a_known_error}) if error_code.nil?
-          self
-        rescue StandardError => error
-          failure(error)
-        end
-      end
+    def _match
+      return failure(key: :not_a_known_error) if error_code.nil?
+      self
+    rescue StandardError => error
+      exception(error)
     end
 
     private
@@ -174,18 +158,14 @@ module RussianPost
     end
   end
 
-  class DomesticTariff < BC::Refined
+  class DomesticTariff < Types::Base
     alias :parsed_response :value
-    def match
-      super do
-        begin
-          next self if is_a_domestic_tariff?
-          context[:raw_response] = parsed_response
-          failure({key: :not_a_domestic_tariff})
-        rescue StandardError => error
-          failure(error)
-        end
-      end
+    def _match
+      return if is_a_domestic_tariff?
+      context[:raw_response] = parsed_response
+      failure(key: :not_a_domestic_tariff)
+    rescue StandardError => error
+      exception(error)
     end
 
     def cost
@@ -207,18 +187,14 @@ module RussianPost
     end
   end
 
-  class InternationalTariff < BC::Refined
+  class InternationalTariff < Types::Base
     alias :parsed_response :value
-    def match
-      super do
-        begin
-          next self if is_an_international_tariff?
-          context[:raw_response] = parsed_response
-          failure({key: :not_an_international_tariff})
-        rescue StandardError => error
-          failure(error)
-        end
-      end
+    def _match
+      return if is_an_international_tariff?
+      context[:raw_response] = parsed_response
+      failure(key: :not_an_international_tariff)
+    rescue StandardError => error
+      exception(error)
     end
 
     def cost
@@ -245,9 +221,9 @@ module RussianPost
   KnownError = RecoverableInputError | OtherError
 
   DomesticResponse =
-    (Types::JSON > (DomesticTariff | KnownError)).set(names: %i(parsed mapped))
+    (Types::JSON.and_then(DomesticTariff | KnownError)).set(names: %i(parsed mapped))
   InternationalResponse =
-    (Types::JSON > (InternationalTariff | KnownError)).set(names: %i(parsed mapped))
+    (Types::JSON.and_then(InternationalTariff | KnownError)).set(names: %i(parsed mapped))
 
   TariffRequestContract = ::BC::Contract.new(
     DomesticParcel      => DomesticResponse,
@@ -263,7 +239,7 @@ end
 
 def match_response(response)
   case response
-  when RussianPost::ExceptionCaught
+  when Types::ExceptionCaught
     puts "Honeybadger.notify #{response.errors_h[:exception]}"
   when RussianPost::InputValidationFailure
     # работаем с тарифом
@@ -321,6 +297,7 @@ PARCELS = [
 RESPONSES = [
   '{"total-cost": 10000, "delivery-till": "2019-12-12"}',
   '{"total-rate": 100000, "total-vat": 1800}',
+  '{"total-rate": "some", "total-vat": "text"}',
   '{"code": 1010, "desc": "Too long address"}',
   '{"error-code": 2020, "error-details": ["Too heavy parcel"]}',
 ]
