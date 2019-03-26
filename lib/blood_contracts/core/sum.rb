@@ -58,5 +58,6 @@ module BloodContracts
         "#<sum #{self.class.name} is #{self.class.sum_of.to_a.join(' or ')} (value=#{@value})>"
       end
     end
+    Or = Sum
   end
 end
