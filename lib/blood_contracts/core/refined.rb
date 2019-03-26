@@ -59,11 +59,6 @@ module BloodContracts
         )
       end
 
-      def inspect
-        require'pry';binding.pry
-        super
-      end
-
       protected
 
       def refined?(object)

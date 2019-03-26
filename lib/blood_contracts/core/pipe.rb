@@ -64,7 +64,6 @@ module BloodContracts
       end
 
       def inspect
-        require'pry';binding.pry
         "#<pipe #{self.class.name} = #{steps_with_names.join(' > ')} (value=#{@value})>"
       end
     end
