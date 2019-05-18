@@ -19,10 +19,10 @@ module BloodContracts
           pipe
         end
 
-        def and_then(other_type)
+        def and_then(other_type, **kwargs)
           raise ArgumentError unless Class === other_type
           pipe = Class.new(Pipe) { def inspect; super; end }
-          pipe.instance_variable_set(:@steps, args)
+          pipe.instance_variable_set(:@steps, [self, other_type])
           pipe.instance_variable_set(:@names, kwargs[:names].to_a)
           pipe.instance_variable_set(:@finalized, true)
           pipe
