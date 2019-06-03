@@ -13,11 +13,11 @@ module BloodContracts
         end
         alias :> :and_then
 
-        def match(*args)
+        def match(*args, **kwargs)
           if block_given?
-            new(*args).match { |*subargs| yield(*subargs) }
+            new(*args, **kwargs).match { |*subargs| yield(*subargs) }
           else
-            new(*args).match
+            new(*args, **kwargs).match
           end
         end
         alias :call :match
@@ -70,7 +70,7 @@ module BloodContracts
         unpack_refined @value
       end
 
-      def failure(error = nil, errors: @errors, context: @context, **kwargs)
+      def failure(error = nil, errors: @errors, **kwargs)
         error ||= kwargs unless kwargs.empty?
         errors << error if error
         self.class.failure_klass.new(

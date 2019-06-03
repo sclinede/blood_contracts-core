@@ -4,10 +4,10 @@ module BloodContracts
       class << self
         attr_reader :steps, :names, :finalized
 
-        def new(*args)
-          return super(*args) if finalized
-          if args.last.is_a?(Hash)
-            names = args.pop.delete(:names)
+        def new(*args, **kwargs)
+          return super(*args, **kwargs) if finalized
+          unless kwargs.empty?
+            names = kwargs.delete(:names)
           end
           names ||= []
 
@@ -38,17 +38,21 @@ module BloodContracts
         attr_writer :names
       end
 
+      def initialize(*)
+        super
+        @context[:types] = @context[:types].to_a
+      end
+
       def match
         super do
           index = 0
           self.class.steps.reduce(value) do |next_value, step|
             unpacked_value = unpack_refined(next_value)
-            match = step.match(unpacked_value)
+            match = step.match(unpacked_value, context: @context)
 
-            share_context_with(match) do |context|
-              context[:steps][step_name(index)] = unpacked_value
-              index += 1
-            end
+            @context[:steps][step_name(index)] = unpacked_value
+            types << match.class.name unless current_type.eql?(match.class.name)
+            index += 1
 
             break match if match.invalid?
             if block_given? && index < self.class.steps.size
@@ -61,6 +65,14 @@ module BloodContracts
 
       def errors
         match.errors
+      end
+
+      private def types
+        context[:types]
+      end
+
+      private def current_type
+        context[:types].last
       end
 
       private def step_name(index)

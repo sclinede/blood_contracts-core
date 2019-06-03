@@ -7,7 +7,7 @@ module BloodContracts
         attr_reader :sum_of, :finalized
 
         def new(*args)
-          return super if finalized
+          return super(*args) if finalized
 
           new_sum = args.reduce([]) { |acc, type| type.respond_to?(:sum_of) ? acc + type.sum_of.to_a : acc << type  }
 
