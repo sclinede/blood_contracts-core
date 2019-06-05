@@ -20,7 +20,11 @@ module BloodContracts
         def or_a(other_type)
           sum = Class.new(Sum) { def inspect; super; end }
           new_sum = self.sum_of.to_a
-          new_sum += other_type.sum_of.to_a if other_type.respond_to?(:sum_of)
+          if other_type.respond_to?(:sum_of)
+            new_sum += other_type.sum_of.to_a
+          else
+            new_sum << other_type
+          end
           sum.instance_variable_set(:@sum_of, ::Set.new(new_sum.compact))
           sum.instance_variable_set(:@finalized, true)
           sum
