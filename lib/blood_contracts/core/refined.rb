@@ -63,9 +63,10 @@ module BloodContracts
       def invalid?; !valid?; end
 
       def unpack
+        return @unpack if defined? @unpack
         raise "This is not what you're looking for" if match.invalid?
         return yield(match) if block_given?
-        return @match = _unpack(match) if respond_to?(:_unpack)
+        return @unpack = _unpack(match) if respond_to?(:_unpack)
 
         unpack_refined @value
       end
