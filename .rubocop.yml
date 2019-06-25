@@ -1,0 +1,30 @@
+---
+
+AllCops:
+  DisplayCopNames:    true
+  DisplayStyleGuide:  true
+  StyleGuideCopsOnly: true
+  TargetRubyVersion:  2.3
+  Exclude:
+    - examples/*
+    - blood_contracts-core.gemspec
+
+Metrics/LineLength:
+  AllowHeredoc: true
+  AllowURI: true
+  URISchemes:
+    - http
+    - https
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Naming/FileName:
+  Exclude:
+    - lib/blood_contracts-core.rb

@@ -1,30 +1,23 @@
+Gem::Specification.new do |gem|
+  gem.name          = "blood_contracts-core"
+  gem.version       = "0.3.6"
+  gem.authors       = ["Sergey Dolganov (sclinede)"]
+  gem.email         = ["sclinede@evilmartians.com"]
 
-lib = File.expand_path("../lib", __FILE__)
-$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require "blood_contracts/core/version"
+  gem.summary       = "Core classes for data validation with contracts approach"
+  gem.description   = "Core classes for data validation with contracts approach (using Either + Writer monad combination & ADT for composition)"
+  gem.homepage      = "https://github.com/sclinede/blood_contracts-core"
+  gem.license       = "MIT"
 
-Gem::Specification.new do |spec|
-  spec.name          = "blood_contracts-core"
-  spec.version       = BloodContracts::Core::VERSION
-  spec.authors       = ["Sergey Dolganov"]
-  spec.email         = ["sclinede@evilmartians.com"]
+  gem.files            = `git ls-files`.split($INPUT_RECORD_SEPARATOR)
+  gem.test_files       = gem.files.grep(/^spec/)
+  gem.extra_rdoc_files = Dir["CODE_OF_CONDUCT.md", "README.md", "LICENSE", "CHANGELOG.md"]
 
-  spec.summary       = %q{Core classes for Contracts API validation}
-  spec.description   = %q{Core classes for Contracts API validation}
-  spec.homepage      = "https://github.com/sclinede/blood_contracts-core"
-  spec.license       = "MIT"
+  gem.required_ruby_version = ">= 2.2"
 
-  # Specify which files should be added to the gem when it is released.
-  # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
-  spec.files         = Dir.chdir(File.expand_path('..', __FILE__)) do
-    `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
-  end
-  spec.bindir        = "bin/"
-  spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
-  spec.require_paths = ["lib"]
-
-  spec.add_development_dependency "bundler", "~> 2.0"
-  spec.add_development_dependency "pry"
-  spec.add_development_dependency "rake", "~> 10.0"
-  spec.add_development_dependency "rspec", "~> 3.0"
+  gem.add_development_dependency "bundler", "~> 2.0"
+  gem.add_development_dependency "pry"
+  gem.add_development_dependency "rake", "~> 10.0"
+  gem.add_development_dependency "rspec", "~> 3.0"
+  gem.add_development_dependency "rubocop", "~> 0.49"
 end

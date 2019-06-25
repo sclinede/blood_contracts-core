@@ -1,5 +1,5 @@
-require 'json'
-require 'blood_contracts/core'
+require "json"
+require "blood_contracts/core"
 
 module Types
   class JSON < BC::Refined
@@ -51,7 +51,7 @@ module Types
 
   Response = BC::Pipe.new(
     BC::Anything, JSON, (Tariff | Error | Tariff),
-    names: [:raw, :parsed, :mapped]
+    names: %i[raw parsed mapped]
   )
 
   # The same is
@@ -87,7 +87,7 @@ def match_response(response)
     puts "match.context # => #{match.context} \n\n"
     puts "render json: { errors: [#{match.unpack['message']}] } }"
   else
-    require'pry';binding.pry
+    require"pry"; binding.pry
   end
 end
 
@@ -98,16 +98,14 @@ valid_response = '{"cost": 1000, "cur": "RUB"}'
 match_response(valid_response)
 puts "#{'=' * 20}================================#{'=' * 20}"
 
-
 puts "\n\n\n"
 puts "#{'=' * 20} WHEN KNOWN API ERROR RESPONSE: #{'=' * 20}"
 error_response = '{"code": 123, "message": "Too Long Address"}'
 match_response(error_response)
 puts "#{'=' * 20}================================#{'=' * 20}"
 
-
 puts "ss => errors }\n\n\n"
 puts "#{'=' * 20} WHEN UNEXPECTED RESPONSE:      #{'=' * 20}"
-invalid_response = '<xml>'
+invalid_response = "<xml>"
 match_response(invalid_response)
 puts "#{'=' * 20}================================#{'=' * 20}"

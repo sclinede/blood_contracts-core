@@ -1,6 +1,6 @@
 require "bundler/setup"
 require "json"
-require 'blood_contracts/core'
+require "blood_contracts/core"
 require "pry"
 
 module Types
@@ -39,7 +39,6 @@ module Types
   end
 end
 
-Config = BC::Tuple.new(Types::Symbol, Types::JSON, names: %i(name config))
+Config = BC::Tuple.new(Types::Symbol, Types::JSON, names: %i[name config])
 c = Config.new("test", '{"some": "value"}')
 binding.pry
-

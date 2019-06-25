@@ -1,6 +1,6 @@
 require "bundler/setup"
 require "json"
-require 'blood_contracts/core'
+require "blood_contracts/core"
 require "pry"
 
 module Types
@@ -41,7 +41,7 @@ module RussianPost
   class DomesticParcel < Types::Base
     self.failure_klass = InputValidationFailure
 
-    alias :parcel :value
+    alias parcel value
     def _match
       return failure(key: :undef_weight, field: :weight) unless parcel.weight
       return if domestic?
@@ -83,7 +83,7 @@ module RussianPost
   class InternationalParcel < Types::Base
     self.failure_klass = InputValidationFailure
 
-    alias :parcel :value
+    alias parcel value
     def _match
       return failure(key: :undef_weight, field: :weight) unless parcel.weight
       return failure(not_from_ru_error) if parcel_outside_ru?
@@ -122,7 +122,7 @@ module RussianPost
   end
 
   class RecoverableInputError < Types::Base
-    alias :parsed_response :value
+    alias parsed_response value
     def _match
       return if [error_code, error_message].all?
       failure(key: :not_a_recoverable_error)
@@ -143,7 +143,7 @@ module RussianPost
   end
 
   class OtherError < Types::Base
-    alias :parsed_response :value
+    alias parsed_response value
     def _match
       return failure(key: :not_a_known_error) if error_code.nil?
       self
@@ -159,7 +159,7 @@ module RussianPost
   end
 
   class DomesticTariff < Types::Base
-    alias :parsed_response :value
+    alias parsed_response value
     def _match
       return if is_a_domestic_tariff?
       context[:raw_response] = parsed_response
@@ -188,7 +188,7 @@ module RussianPost
   end
 
   class InternationalTariff < Types::Base
-    alias :parsed_response :value
+    alias parsed_response value
     def _match
       return if is_an_international_tariff?
       context[:raw_response] = parsed_response
@@ -221,13 +221,13 @@ module RussianPost
   KnownError = RecoverableInputError | OtherError
 
   DomesticResponse =
-    (Types::JSON.and_then(DomesticTariff | KnownError)).set(names: %i(parsed mapped))
+    (Types::JSON.and_then(DomesticTariff | KnownError)).set(names: %i[parsed mapped])
   InternationalResponse =
-    (Types::JSON.and_then(InternationalTariff | KnownError)).set(names: %i(parsed mapped))
+    (Types::JSON.and_then(InternationalTariff | KnownError)).set(names: %i[parsed mapped])
 
   TariffRequestContract = ::BC::Contract.new(
     DomesticParcel      => DomesticResponse,
-    InternationalParcel => InternationalResponse,
+    InternationalParcel => InternationalResponse
   )
 end
 
@@ -264,7 +264,7 @@ def match_response(response)
     pp(response.context)
     puts "render json: { errors: 'Ooops! Not working, we've been notified. Please, try again later' }"
   else
-    require'pry';binding.pry
+    require"pry"; binding.pry
   end
 end
 
@@ -279,16 +279,16 @@ Parcel = Struct.new(
 
 PARCELS = [
   # domestic without weight
-  Parcel.new(weight: nil, origin_country: "RU", origin_postal_code: "123", destination_country: "RU", destination_postal_code: "123" ),
+  Parcel.new(weight: nil, origin_country: "RU", origin_postal_code: "123", destination_country: "RU", destination_postal_code: "123"),
 
   # not from RU
-  Parcel.new(weight: 123, origin_country: "US", origin_postal_code: "123", destination_country: "RU", destination_postal_code: "123" ),
+  Parcel.new(weight: 123, origin_country: "US", origin_postal_code: "123", destination_country: "RU", destination_postal_code: "123"),
 
   # domestic
-  Parcel.new(weight: 123, origin_country: "RU", origin_postal_code: "123", destination_country: "RU", destination_postal_code: "123" ),
+  Parcel.new(weight: 123, origin_country: "RU", origin_postal_code: "123", destination_country: "RU", destination_postal_code: "123"),
 
   # international
-  Parcel.new(weight: 123, origin_country: "RU", origin_postal_code: "123", destination_country: "RU", destination_postal_code: "123" ),
+  Parcel.new(weight: 123, origin_country: "RU", origin_postal_code: "123", destination_country: "RU", destination_postal_code: "123"),
 
   # not a parcel
   Stuff.new(daaamn: "WTF?!")
@@ -299,7 +299,7 @@ RESPONSES = [
   '{"total-rate": 100000, "total-vat": 1800}',
   '{"total-rate": "some", "total-vat": "text"}',
   '{"code": 1010, "desc": "Too long address"}',
-  '{"error-code": 2020, "error-details": ["Too heavy parcel"]}',
+  '{"error-code": 2020, "error-details": ["Too heavy parcel"]}'
 ]
 
 def run_tests(runs: ENV["RUNS"] || 10)

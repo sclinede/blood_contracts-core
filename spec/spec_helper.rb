@@ -1,3 +1,9 @@
+begin
+  require "pry"
+rescue LoadError
+  nil
+end
+
 require "bundler/setup"
 require "blood_contracts/core"
 
@@ -10,5 +16,11 @@ RSpec.configure do |config|
 
   config.expect_with :rspec do |c|
     c.syntax = :expect
+  end
+
+  config.around do |example|
+    module Test; end
+    example.run
+    Object.send(:remove_const, :Test)
   end
 end
