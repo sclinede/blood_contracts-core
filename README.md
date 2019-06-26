@@ -1,5 +1,12 @@
 # BloodContracts::Core
 
+[![Build Status](https://travis-ci.org/sclinede/blood_contracts-core.svg?branch=master)][travis]
+[![Code Climate](https://codeclimate.com/github/sclinede/blood_contracts-core/badges/gpa.svg)][codeclimate]
+
+[gem]: https://rubygems.org/gems/blood_contracts-core
+[travis]: https://travis-ci.org/sclinede/blood_contracts-core
+[codeclimate]: https://codeclimate.com/github/sclinede/blood_contracts-core
+
 Simple implementation of Refinement Types and Contract (based on types).
 Would be the basement for the BloodContracts API production testing framework.
 

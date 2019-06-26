@@ -8,6 +8,7 @@ AllCops:
   Exclude:
     - examples/*
     - blood_contracts-core.gemspec
+    - vendor/bundle/**/*
 
 Metrics/LineLength:
   AllowHeredoc: true
