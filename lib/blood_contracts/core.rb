@@ -7,6 +7,7 @@ module BloodContracts
     require_relative "./core/contract.rb"
     require_relative "./core/sum.rb"
     require_relative "./core/tuple.rb"
+    require_relative "./core/tuple_contract_failure.rb"
 
     # constant aliases
     Or = Sum

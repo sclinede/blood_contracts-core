@@ -19,6 +19,6 @@ class BloodContracts::Core::ContractFailure < BloodContracts::Core::Refined
   end
 
   def unpack
-    @context
+    @value
   end
 end
