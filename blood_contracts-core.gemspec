@@ -13,7 +13,7 @@ Gem::Specification.new do |gem|
   gem.test_files       = gem.files.grep(/^spec/)
   gem.extra_rdoc_files = Dir["CODE_OF_CONDUCT.md", "README.md", "LICENSE", "CHANGELOG.md"]
 
-  gem.required_ruby_version = ">= 2.2"
+  gem.required_ruby_version = ">= 2.4"
 
   gem.add_development_dependency "bundler", "~> 2.0"
   gem.add_development_dependency "pry"

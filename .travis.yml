@@ -9,7 +9,7 @@ script:
   - bundle exec rspec
   - bundle exec rubocop
 rvm:
-  - 2.3.0
+  - 2.4.0
   - 2.6.0
   - jruby-9.2.0.0
   - ruby-head
