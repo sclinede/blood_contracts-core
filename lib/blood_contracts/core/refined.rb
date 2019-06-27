@@ -42,7 +42,7 @@ module BloodContracts::Core
     end
 
     attr_accessor :context
-    attr_reader :errors, :value
+    attr_reader :errors
 
     def initialize(value, context: Hash.new { |h, k| h[k] = {} }, **)
       @errors = []
@@ -72,7 +72,7 @@ module BloodContracts::Core
       return @unpack = yield(match) if block_given?
       return @unpack = _unpack(match) if respond_to?(:_unpack)
 
-      unpack_refined @value
+      value
     end
 
     def failure(error = nil, errors: @errors, **kwargs)
@@ -84,6 +84,10 @@ module BloodContracts::Core
     end
 
     protected
+
+    def value
+      unpack_refined(@value)
+    end
 
     def refined?(object)
       object.class < BloodContracts::Core::Refined
