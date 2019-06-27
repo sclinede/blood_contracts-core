@@ -9,6 +9,10 @@ class BloodContracts::Core::ContractFailure < BloodContracts::Core::Refined
     @context[:errors].to_a
   end
 
+  def messages
+    errors.reduce(:merge).values.flatten!
+  end
+
   def errors_h
     errors.reduce(:merge)
   end
