@@ -56,18 +56,16 @@ module BloodContracts::Core
     end
 
     def match
-      super do
-        @matches = attributes_enumerator.map do |(type, value), index|
-          attribute_name = self.class.names[index]
-          attributes.store(attribute_name, type.match(value, context: @context))
-        end
-        next self if @matches.find(&:invalid?).nil?
-        failure(:invalid_tuple)
+      @matches = attributes_enumerator.map do |(type, value), index|
+        attribute_name = self.class.names[index]
+        attributes.store(attribute_name, type.match(value, context: @context))
       end
+      return if @matches.find(&:invalid?).nil?
+      failure(:invalid_tuple)
     end
 
-    def unpack
-      super { |_match| @matches.map(&:unpack) }
+    def mapped
+      @matches.map(&:unpack)
     end
     alias to_ary unpack
     alias to_a unpack

@@ -14,7 +14,7 @@ module Types
   class JSON < Base
     def _match
       context[:parsed] = ::JSON.parse(unpack_refined(@value))
-      self
+      nil
     rescue StandardError => error
       exception(error)
     end
@@ -42,16 +42,17 @@ module RussianPost
     self.failure_klass = InputValidationFailure
 
     alias parcel value
-    def _match
+    def match
       return failure(key: :undef_weight, field: :weight) unless parcel.weight
       return if domestic?
+
       failure(non_domestic_error)
     rescue StandardError => error
       exception(error)
     end
 
-    def _unpack(match)
-      DomesticTariffMapper.call(match.parcel)
+    def mapped
+      DomesticTariffMapper.call(parcel)
     end
 
     private
@@ -84,17 +85,17 @@ module RussianPost
     self.failure_klass = InputValidationFailure
 
     alias parcel value
-    def _match
+    def match
       return failure(key: :undef_weight, field: :weight) unless parcel.weight
       return failure(not_from_ru_error) if parcel_outside_ru?
       return failure(non_international_error) if non_international_parcel?
-      self
+      nil
     rescue StandardError => error
       exception(error)
     end
 
-    def _unpack(match)
-      InternationalTariffMapper.call(match.parcel)
+    def mapped
+      InternationalTariffMapper.call(parcel)
     end
 
     private
@@ -123,8 +124,9 @@ module RussianPost
 
   class RecoverableInputError < Types::Base
     alias parsed_response value
-    def _match
+    def match
       return if [error_code, error_message].all?
+
       failure(key: :not_a_recoverable_error)
     rescue StandardError => error
       exception(error)
@@ -144,9 +146,10 @@ module RussianPost
 
   class OtherError < Types::Base
     alias parsed_response value
-    def _match
-      return failure(key: :not_a_known_error) if error_code.nil?
-      self
+    def match
+      return unless error_code.nil?
+
+      failure(key: :not_a_known_error)
     rescue StandardError => error
       exception(error)
     end
@@ -160,7 +163,7 @@ module RussianPost
 
   class DomesticTariff < Types::Base
     alias parsed_response value
-    def _match
+    def match
       return if is_a_domestic_tariff?
       context[:raw_response] = parsed_response
       failure(key: :not_a_domestic_tariff)
@@ -189,7 +192,7 @@ module RussianPost
 
   class InternationalTariff < Types::Base
     alias parsed_response value
-    def _match
+    def match
       return if is_an_international_tariff?
       context[:raw_response] = parsed_response
       failure(key: :not_an_international_tariff)
@@ -239,8 +242,6 @@ end
 
 def match_response(response)
   case response
-  when Types::ExceptionCaught
-    puts "Honeybadger.notify #{response.errors_h[:exception]}"
   when RussianPost::InputValidationFailure
     # работаем с тарифом
     puts "render json: { errors: 'Parcel is invalid for request (#{response.to_h})' }"
@@ -257,6 +258,8 @@ def match_response(response)
     # работаем с ошибкой, e.g. адрес слишком длинный
     puts "Honeybadger.notify 'Non-recoverable error from Russian Post API', context: #{pp(response.context)}"
     puts "render json: { errors: ['Sorry, API could not process your request, we've been notified. Try again later'] } }"
+  when Types::ExceptionCaught
+    puts "Honeybadger.notify #{response.errors_h[:exception]}"
   when BC::ContractFailure
     puts "Honeybadger.notify 'Unexpected behavior in Russian Post API Client', context:"
     puts "  'Unexpected behavior in Russian Post API Client'"

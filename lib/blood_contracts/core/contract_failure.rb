@@ -1,6 +1,7 @@
 class BloodContracts::Core::ContractFailure < BloodContracts::Core::Refined
   def initialize(value = nil, **)
     super
+    @match = self
     return unless @value
     @context[:errors] = (@context[:errors].to_a << @value.to_h)
   end

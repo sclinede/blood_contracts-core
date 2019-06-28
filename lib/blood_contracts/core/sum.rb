@@ -45,21 +45,19 @@ module BloodContracts::Core
     end
 
     def match
-      super do
-        or_matches = self.class.sum_of.map do |type|
-          type.match(@value, context: @context)
-        end
+      or_matches = self.class.sum_of.map do |type|
+        type.match(@value, context: @context)
+      end
 
-        if (match = or_matches.find(&:valid?))
-          match
-        else
-          failure(:no_matches)
-        end
+      if (match = or_matches.find(&:valid?))
+        match
+      else
+        failure(:no_matches)
       end
     end
 
     def errors
-      match.errors
+      @match.errors
     end
 
     def inspect

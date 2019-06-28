@@ -57,16 +57,14 @@ module BloodContracts::Core
     end
 
     def match
-      super do
-        steps_enumerator.reduce(value) do |next_value, (step, index)|
-          match = next_step_value_match!(step, next_value, index)
+      steps_enumerator.reduce(value) do |next_value, (step, index)|
+        match = next_step_value_match!(step, next_value, index)
 
-          break match if match.invalid?
-          next match unless block_given?
-          next refine_value(yield(match)) if index < self.class.steps.size - 1
+        break match if match.invalid?
+        next match unless block_given?
+        next refine_value(yield(match)) if index < self.class.steps.size - 1
 
-          match
-        end
+        match
       end
     end
 

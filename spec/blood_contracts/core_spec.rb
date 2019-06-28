@@ -7,61 +7,63 @@ RSpec.describe BloodContracts::Core do
       class Json < ::BC::Refined
         require "json"
 
-        def _match
+        def match
           context[:raw_value] = unpack_refined(value).to_s
           context[:parsed] =
             JSON.parse(context[:raw_value], symbolize_names: true)
-          self
+          nil
         rescue JSON::ParserError => exception
           failure(exception)
         end
 
-        def _unpack(match)
-          match.context[:parsed]
+        def mapped
+          context[:parsed]
         end
       end
 
       class Phone < ::BC::Refined
         REGEX = /\A(\+7|8)(9|8)\d{9}\z/i
 
-        def _match
+        def match
           context[:phone] = unpack_refined(value).to_s
           context[:clean_phone] = context[:phone].gsub(/[\s\(\)-]/, "")
-          return failure("Not a phone") unless context[:clean_phone] =~ REGEX
+          return if context[:clean_phone] =~ REGEX
 
-          self
+          failure("Not a phone")
         end
 
-        def _unpack(match)
-          match.context[:clean_phone]
+        def mapped
+          context[:clean_phone]
         end
       end
 
       class Email < ::BC::Refined
         REGEX = /\A[\w+\-.]+@[a-z\d\-]+(\.[a-z\d\-]+)*\.[a-z]+\z/i
 
-        def _match
+        def match
           context[:email] = unpack_refined(value).to_s
-          return failure("Not an email") unless context[:email] =~ REGEX
-          self
+          return if context[:email] =~ REGEX
+
+          failure("Not an email")
         end
 
-        def _unpack(match)
-          match.context[:email]
+        def mapped
+          context[:email]
         end
       end
 
       class Ascii < ::BC::Refined
         REGEX = /^[[:ascii:]]+$/i
 
-        def _match
+        def match
           context[:ascii_string] = value.to_s
-          return failure("Not ASCII") unless context[:ascii_string] =~ REGEX
-          self
+          return if context[:ascii_string] =~ REGEX
+
+          failure("Not ASCII")
         end
 
-        def _unpack(match)
-          match.context[:ascii_string]
+        def mapped
+          context[:ascii_string]
         end
       end
     end
@@ -89,6 +91,7 @@ RSpec.describe BloodContracts::Core do
       it do
         is_expected.to be_invalid
         expect(subject.errors).to match([error])
+        expect(subject.messages).to match(["Not ASCII"])
         expect(subject.unpack).to match(error)
       end
     end

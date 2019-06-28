@@ -14,12 +14,12 @@ module BloodContracts::Core
       end
       alias > and_then
 
-      def match(*args, **kwargs)
-        if block_given?
-          new(*args, **kwargs).match { |*subargs| yield(*subargs) }
-        else
-          new(*args, **kwargs).match
-        end
+      def match(*args, **kwargs, &block)
+        instance = new(*args, **kwargs)
+        match = instance.match(&block) || instance
+        instance.instance_variable_set(:@match, match)
+        match.instance_variable_set(:@unpack, match.send(:mapped))
+        match
       end
       alias call match
 
@@ -50,16 +50,13 @@ module BloodContracts::Core
       @value = value
     end
 
-    def match
-      return @match if defined? @match
-      return @match = (yield || self) if block_given?
-      return @match = (_match || self) if respond_to?(:_match)
-      self
-    end
+    protected def match; end
     alias call match
 
+    protected def mapped; end
+
     def valid?
-      match.errors.empty?
+      @match.errors.empty?
     end
 
     def invalid?
@@ -67,12 +64,7 @@ module BloodContracts::Core
     end
 
     def unpack
-      return @unpack if defined? @unpack
-      raise InvalidTypeUnpacking if match.invalid?
-      return @unpack = yield(match) if block_given?
-      return @unpack = _unpack(match) if respond_to?(:_unpack)
-
-      value
+      @unpack ||= value
     end
 
     def failure(error = nil, errors: @errors, **kwargs)

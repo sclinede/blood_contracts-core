@@ -4,48 +4,42 @@ require "blood_contracts/core"
 module Types
   class JSON < BC::Refined
     def match
-      super do
-        begin
-          context[:parsed] = ::JSON.parse(unpack_refined(@value))
-          self
-        rescue StandardError => error
-          failure(error)
-        end
-      end
+      context[:parsed] = ::JSON.parse(value)
+      self
+    rescue StandardError => error
+      failure(error)
     end
 
-    def unpack
-      super { |match| match.context[:parsed] }
+    def mapped
+      context[:parsed]
     end
   end
 
   class Tariff < BC::Refined
     def match
-      super do
-        context[:data] = unpack_refined(@value).slice("cost", "cur").compact
-        context[:tariff_context] = 1
-        return self if context[:data].size == 2
-        failure(:not_a_tariff)
-      end
+      context[:data] = value.slice("cost", "cur").compact
+      context[:tariff_context] = 1
+      return if context[:data].size == 2
+
+      failure(:not_a_tariff)
     end
 
-    def unpack
-      super { |match| match.context[:data] }
+    def mapped
+      context[:data]
     end
   end
 
   class Error < BC::Refined
     def match
-      super do
-        context[:data] = unpack_refined(value).slice("code", "message").compact
-        context[:known_error_context] = 1
-        return self if context[:data].size == 2
-        failure(:not_a_known_error)
-      end
+      context[:data] = unpack_refined(value).slice("code", "message").compact
+      context[:known_error_context] = 1
+      return if context[:data].size == 2
+
+      failure(:not_a_known_error)
     end
 
-    def unpack
-      super { |match| match.context[:data] }
+    def mapped
+      context[:data]
     end
   end
 
@@ -70,14 +64,6 @@ end
 def match_response(response)
   match = Types::Response.match(response)
   case match
-  when BC::ContractFailure
-    puts "Honeybadger.notify 'Unexpected behavior in Russian Post', context: #{match.context}"
-    puts "render json: { errors: 'Ooops! Not working, we've been notified. Please, try again later' }"
-
-    return unless ENV["RAISE"]
-    match.errors.values.flatten.find do |v|
-      raise v if StandardError === v
-    end
   when Types::Tariff
     # работаем с тарифом
     puts "match.context # => #{match.context} \n\n"
@@ -86,8 +72,16 @@ def match_response(response)
     # работаем с ошибкой, e.g. адрес слишком длинный
     puts "match.context # => #{match.context} \n\n"
     puts "render json: { errors: [#{match.unpack['message']}] } }"
+  when BC::ContractFailure
+    puts "Honeybadger.notify 'Unexpected behavior in Russian Post', context: #{match.context}"
+    puts "render json: { errors: 'Ooops! Not working, we've been notified. Please, try again later' }"
+
+    return unless ENV["RAISE"]
+    match.errors.values.flatten.find do |v|
+      raise v if StandardError === v
+    end
   else
-    require"pry"; binding.pry
+    raise
   end
 end
 
