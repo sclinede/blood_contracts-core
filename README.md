@@ -208,7 +208,7 @@ end
 Let's test our API client!
 
 ```ruby
-gem = RubygemsAPI::Client.new.gem("rack") # => #<RubygemAPI::GemInfo ...>
+gem = RubygemsAPI::Client.gem("rack") # => #<RubygemAPI::GemInfo ...>
 gem.unpack # => {"name" => ..., "authors" => ...}
 ```
 
@@ -216,7 +216,7 @@ Nice!
 But wait, what if we misspelled gem name?
 
 ```ruby
-gem = RubygemsAPI::Client.new.gem("big-bada-bum") # => #<BC::ContractFailure ...>
+gem = RubygemsAPI::Client.gem("big-bada-bum") # => #<BC::ContractFailure ...>
 gem.messages # => [:invalid_json]
 # hmmm, wait... what?
 gem.context[:response] # => "This rubygem could not be found."
@@ -256,23 +256,23 @@ end
 Let's test our API client, again!
 
 ```ruby
-gem = RubygemsAPI::Client.new.gem("rack") # => #<RubygemAPI::GemInfo ...>
+gem = RubygemsAPI::Client.gem("rack") # => #<RubygemAPI::GemInfo ...>
 gem.unpack # => {"name" => ..., "authors" => ...}
 
 # good, but how about not found case?
-gem = RubygemsAPI::Client.new.gem("big-bada-bum") # => #<RubygemAPI::PlainTextError ...>
+gem = RubygemsAPI::Client.gem("big-bada-bum") # => #<RubygemAPI::PlainTextError ...>
 gem.unpack # => "This rubygem could not be found."
 ```
 
 And of course we could use it in a case statement:
 ```ruby
-case gem = RubygemsAPI::Client.new.gem("rack")
+case gem = RubygemsAPI::Client.gem("rack")
 when GemInfo
   gem.unpack # show data to user
 when PlaintTextError
   {message: gem.unpack, status: 400} # wrap it into json response
 when BC::ContractFailure
-  match.messages # => [:unknown_country]
+  match.messages
 else raise # ... you know why
 end
 ```
