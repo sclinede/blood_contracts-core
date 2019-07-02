@@ -84,10 +84,10 @@ else raise # remember the matching should be exhaustive (simplifies debugging, I
 end
 ```
 
-To create your first type just inherit class from BC::Refined and implement method `#_match`.
+To create your first type just inherit class from BC::Refined and implement method `#match`.
 
 The method should:
-- return nil on successful validation
+- return self or nil on successful validation
 - return BC::ContractFailure instance by calling method `#failure` and provide error text/symbol
 
 ```ruby
@@ -100,7 +100,7 @@ class Country < BC::Refined
 end
 ```
 
-Also, you could improve the successful outcome by mapping VALID data to something more appropriate, for example you could normalize data. For that you need only implement `#_unpack`
+Also, you could improve the successful outcome by mapping VALID data to something more appropriate, for example you could normalize data. For that you need only implement `#mapped`
 
 ```ruby
 require 'countries' # gem with data about countries
@@ -127,7 +127,9 @@ end
 ```
 
 Okay, we passed through single value validation. How about complex cases?
+
 Imagine you want to validate response from some JSON API, let's write your first API client with refinement types together.
+
 For this example we'll create RubygemsAPI client:
 
 ```ruby
@@ -156,10 +158,10 @@ But what is the RubygemsAPI::Validation class?
 ## "And Then" Composition (BC::Pipe class)
 
 Our API client just reads a document from the Internet, which is why first we need to parse it as JSON and then extract something useful.
-This is where "#and_then" method quite useful. It runs validation over first BC::Refined and only if the first validation was successful calls the other one.
-Otherwise we'll just receive ContractFailure, you know.
+This is where `#and_then` method quite useful. It runs validation over first BC::Refined and only if the first validation was successful calls the other one.
+Otherwise we'll just receive `BC::ContractFailure`, you know.
 
-Our first challenge is to read rubygem info from the API, so we need two types: Json (for parsing) and Gem (for gem info)
+Our first challenge is to read Ruby gem info from the API, so we need two types: Json (for parsing) and Gem (for gem info)
 
 ```ruby
 module RubygemsAPI
@@ -228,7 +230,7 @@ It would be great to show that original message to our user, but how?
 
 ## "Or" Composition (BC::Sum class)
 
-Actually, we could add another type to our validation using "Or" composition. Use it by calling `#or_a` / `#or_an` method on your BC::Refined class.
+Actually, we could add another type in our validation using "Or" composition. Use it by calling `#or_a` / `#or_an` method on your BC::Refined class.
 Let's try:
 
 ```ruby
@@ -238,7 +240,8 @@ module RubygemsAPI
   class PlainTextError < BC::Refined
     def match
       context[:response] = value.to_s
-      JSON.parse(context[:response])
+      # to avoid multiple parsing of response, we'll try to save it
+      context[:parsed] = JSON.parse(context[:response])
       failure(:non_plain_text_response)
     rescue JSON::ParserError
       self
@@ -277,15 +280,112 @@ else raise # ... you know why
 end
 ```
 
+It was a nice run!
+
+So actually only one other scenario left to show.
+
+Do you remember the Login type from the beginning? Let's try to implement simple registration form validation.
+
 ## "And" Composition (BC::Tuple class)
 
-TBD
+If you'll try to represent complex data with refinement types the best tool is "and" composition or "product" of types. Sounds wierd?
+
+But you actually work with that concept all the time. It's just a record or struct.
+
+Let's write our registration form validation with a Struct:
+
+```ruby
+RegistrationForm = Struct.new(:login, :password) do
+  def self.call(login, password)
+    # validation logic
+  end
+end
+```
+
+So, the BloodContracts version will look the same, except you only need to implement types for login and password:
+
+```ruby
+module Registration
+  class Email < ::BC::Refined
+    REGEX = /\A[\w+\-.]+@[a-z\d\-]+(\.[a-z\d\-]+)*\.[a-z]+\z/i
+
+    def match
+      context[:email_input] = value.to_s
+      return failure(:invalid_email) unless context[:email_input] =~ REGEX
+      context[:email] = context[:email_input]
+      self
+    end
+  end
+
+  class Phone < ::BC::Refined
+    REGEX = /\A(\+7|8)(9|8)\d{9}\z/i
+
+    def match
+      context[:phone_input] = value.to_s
+      return failure(:invalid_phone) unless context[:phone_input] =~ REGEX
+      context[:phone] = context[:phone_input]
+      self
+    end
+  end
+
+  class Ascii < ::BC::Refined
+    REGEX = /^[[:ascii:]]+$/i
+
+    def match
+      context[:ascii_input] = value.to_s
+      return failure(:not_ascii) unless context[:ascii_input] =~ REGEX
+      context[:ascii_string] = context[:ascii_input]
+      self
+    end
+  end
+
+  # Create meta class as the Struct.new
+  Form = BC::Tuple.new do
+    # defines a reader and applies validation on `.match` call
+    attribute :login, Email.or_a(Phone)
+    attribute :password, Ascii
+  end
+end
+```
+
+And the code that you'll put in your controller is something like that:
+
+```ruby
+class RegistrationController < ActionController::Base
+  def create
+    case match = Registration::Form.match(params)
+    when Registration::Form
+      # login here is either Phone or Email
+      # password here is always ASCII only string
+      user = User.find_or_create!(login: match.login) do |user|
+        user.password = match.password
+        user.email = match.context[:email]
+        user.phone = match.context[:phone]
+      end
+      render json: {code: 200, user_id: user.id, message: "User was successfully created!"}
+    when BC::ContractFailure
+      message = match.messages.map(&I18n.method(:t)).join("\n")
+      render json: {code: 400, message: message}
+    else
+      Honeybadger.notify("Invalid BloodContracts usage", context: match.inspect)
+      render json: {code: 500, message: "Unexpected contract behavior. Fix me ASAP"}
+    end
+  end
+end
+```
+
+Now, you're ready to write any kind of complex data validation with BloodContracts
+
+What are the next steps?
+
+Soon we'll announce `blood_contracts-extended` and `blood_contracts-monitoring`, which will help you monitor the data (what types and how often matches in your system) and
+even collect for you unique samples of the communication (up to the types that matched).
 
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `gemspec`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
 ## Contributing
 
