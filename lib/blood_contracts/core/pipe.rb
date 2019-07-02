@@ -1,11 +1,22 @@
 module BloodContracts::Core
+  # Meta refinement type, represents pipe of several refinement types
   class Pipe < Refined
     class << self
-      attr_reader :steps, :names, :finalized
+      # List of data transformation step
+      #
+      # @return [Array<Refined>]
+      #
+      attr_reader :steps
+
+      # List of data transformation step names
+      #
+      # @return [Array<Symbol>]
+      #
+      attr_reader :names
 
       # rubocop:disable Style/SingleLineMethods
       def new(*args, **kwargs, &block)
-        return super(*args, **kwargs) if finalized
+        return super(*args, **kwargs) if @finalized
         names = kwargs.delete(:names) unless kwargs.empty?
         names ||= []
 
@@ -16,6 +27,11 @@ module BloodContracts::Core
         pipe
       end
 
+      # Compose types in a Pipe check
+      # Pipe passes data from type to type sequentially
+      #
+      # @return [BC::Pipe]
+      #
       # rubocop:disable Style/CaseEquality
       def and_then(other_type, **kwargs)
         raise ArgumentError unless Class === other_type
@@ -26,6 +42,11 @@ module BloodContracts::Core
       # rubocop:enable Style/CaseEquality Style/SingleLineMethods
       alias > and_then
 
+      # Helper which registers step in validation pipe, also defines a reader
+      #
+      # @param [Symbol] name of the matching step
+      # @param [Refined] type of the matching step
+      #
       def step(name, type)
         raise ArgumentError unless type < Refined
         @steps << type
@@ -35,6 +56,10 @@ module BloodContracts::Core
         end
       end
 
+      # Returns text representation of Pipe meta-class
+      #
+      # @return [String]
+      #
       def inspect
         return super if name
         "Pipe(#{steps.to_a.join(',')})"
@@ -45,17 +70,24 @@ module BloodContracts::Core
         new_class.instance_variable_set(:@names, names)
         new_class.instance_variable_set(:@finalized, true)
       end
-
-      private
-
-      attr_writer :names
     end
 
+    # Constructs a Pipe using the given value
+    # (for Pipe steps are also stored in the context)
+    #
+    # @return [Pipe]
+    #
     def initialize(*)
       super
       @context[:steps] = @context[:steps].to_a
     end
 
+    # The type which is the result of data matching process
+    # For PIpe it verifies that data is valid through all data transformation
+    # steps
+    #
+    # @return [BC::Refined]
+    #
     def match
       steps_enumerator.reduce(value) do |next_value, (step, index)|
         match = next_step_value_match!(step, next_value, index)
@@ -68,10 +100,15 @@ module BloodContracts::Core
       end
     end
 
+    # List of errors per type during the matching
+    #
+    # @return [Array<Hash<Refined, String>>]
+    #
     def errors
-      match.errors
+      @context[:errors]
     end
 
+    # @private
     private def next_step_value_match!(step, value, index)
       unpacked_value = unpack_refined(value)
       match = step.match(unpacked_value, context: @context)
@@ -79,27 +116,33 @@ module BloodContracts::Core
       match
     end
 
+    # @private
     private def steps_enumerator
       self.class.steps.each_with_index
     end
 
+    # @private
     private def track_steps!(index, unpacked_value, match_class_name)
       @context[:steps_values][step_name(index)] = unpacked_value
       steps << match_class_name unless current_step.eql?(match_class_name)
     end
 
+    # @private
     private def steps
       @context[:steps]
     end
 
+    # @private
     private def current_step
       @context[:steps].last
     end
 
+    # @private
     private def step_name(index)
       self.class.names[index] || index
     end
 
+    # @private
     private def steps_with_names
       steps = self.class.steps
       if self.class.names.empty?
@@ -109,6 +152,7 @@ module BloodContracts::Core
       end
     end
 
+    # @private
     private def inspect
       "#<pipe #{self.class.name} = #{steps_with_names.join(' > ')}"\
       " (value=#{@value})>"

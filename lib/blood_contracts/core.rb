@@ -1,4 +1,6 @@
+# Top-level scope for BloodContracts collection of gems
 module BloodContracts
+  # Scope for BloodContracts::Core classes
   module Core
     require_relative "./core/refined.rb"
     require_relative "./core/contract_failure.rb"
