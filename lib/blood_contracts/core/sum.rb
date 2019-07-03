@@ -71,11 +71,11 @@ module BloodContracts::Core
     # @return [BC::Refined]
     #
     def match
-      or_matches = self.class.sum_of.map do |type|
+      @or_matches = self.class.sum_of.map do |type|
         type.match(@value, context: @context)
       end
 
-      if (match = or_matches.find(&:valid?))
+      if (match = @or_matches.find(&:valid?))
         match
       else
         failure(:no_matches)
