@@ -24,7 +24,7 @@ module BloodContracts::Core
         names = args.pop.delete(:names) if args.last.is_a?(Hash)
 
         raise ArgumentError unless args.all? { |type| type < Refined }
-        tuple = Class.new(Tuple) { def inspect; super; end }
+        tuple = Class.new(self) { def inspect; super; end }
         tuple.instance_variable_set(:@attributes, args)
         tuple.instance_variable_set(:@names, names.to_a)
         tuple.instance_variable_set(:@finalized, true)

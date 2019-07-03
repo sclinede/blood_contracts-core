@@ -23,7 +23,7 @@ module BloodContracts::Core
           type.respond_to?(:sum_of) ? acc + type.sum_of.to_a : acc << type
         end
 
-        sum = Class.new(Sum) { def inspect; super; end }
+        sum = Class.new(self) { def inspect; super; end }
         finalize!(sum, new_sum)
         sum
       end
@@ -35,7 +35,7 @@ module BloodContracts::Core
       # @return [BC::Sum]
       #
       def or_a(other_type)
-        sum = Class.new(Sum) { def inspect; super; end }
+        sum = Class.new(self) { def inspect; super; end }
         new_sum = sum_of.to_a
         if other_type.respond_to?(:sum_of)
           new_sum += other_type.sum_of.to_a

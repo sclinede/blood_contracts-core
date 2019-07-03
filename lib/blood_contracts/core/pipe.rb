@@ -21,7 +21,7 @@ module BloodContracts::Core
         names ||= []
 
         raise ArgumentError unless args.all? { |type| type < Refined }
-        pipe = Class.new(Pipe) { def inspect; super; end }
+        pipe = Class.new(self) { def inspect; super; end }
         finalize!(pipe, args, names)
         pipe.class_eval(&block) if block_given?
         pipe
@@ -35,7 +35,7 @@ module BloodContracts::Core
       # rubocop:disable Style/CaseEquality
       def and_then(other_type, **kwargs)
         raise ArgumentError unless Class === other_type
-        pipe = Class.new(Pipe) { def inspect; super; end }
+        pipe = Class.new(self) { def inspect; super; end }
         finalize!(pipe, [self, other_type], kwargs[:names].to_a)
         pipe
       end

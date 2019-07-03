@@ -1,5 +1,5 @@
 module BloodContracts::Core
-  # Represents failure in during of Tuple data matching
+  # Represents failure in Tuple data matching
   class TupleContractFailure < ContractFailure
     # Hash of attributes (name & type pairs)
     #
