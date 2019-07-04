@@ -84,7 +84,7 @@ module BloodContracts::Core
     # @return [BC::Refined]
     #
     protected def match
-      fail NotImplementedError
+      raise NotImplementedError
     end
     alias call match
 

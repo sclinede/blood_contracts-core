@@ -1,7 +1,6 @@
 module BloodContracts::Core
   # Refinement type which represents data which is always correct
   class Anything < Refined
-
     # The type which is the result of data matching process
     # (for Anything is always self)
     #

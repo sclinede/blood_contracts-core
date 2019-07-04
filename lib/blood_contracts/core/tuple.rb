@@ -58,7 +58,6 @@ module BloodContracts::Core
       end
     end
 
-
     # List of values in Tuple
     #
     # @return [Array<Object>]
