@@ -73,7 +73,7 @@ module BloodContracts::Core
     # @param [Object] value that Refined holds and should match
     # @option [Hash<Symbol, Object>] context to share between types
     #
-    def initialize(value, context: Hash.new { |h, k| h[k] = {} }, **)
+    def initialize(value, context: {}, **)
       @errors = []
       @context = context
       @value = value

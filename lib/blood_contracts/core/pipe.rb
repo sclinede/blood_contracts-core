@@ -80,6 +80,7 @@ module BloodContracts::Core
     def initialize(*)
       super
       @context[:steps] = @context[:steps].to_a
+      @context[:steps_values] = {}
     end
 
     # The type which is the result of data matching process

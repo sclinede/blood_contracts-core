@@ -69,7 +69,7 @@ module BloodContracts::Core
     # @param [Array<Object>] *values that we'll keep inside the Tuple
     # @option [Hash<Symbol, Object>] context to share between types
     #
-    def initialize(*values, context: Hash.new { |h, k| h[k] = {} }, **)
+    def initialize(*values, context: {}, **)
       @context = context
       @context[:attributes] ||= {}
 
