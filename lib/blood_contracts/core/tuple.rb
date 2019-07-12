@@ -40,10 +40,16 @@ module BloodContracts::Core
       # rubocop:enable Style/SingleLineMethods
 
       # Helper which registers attribute in the Tuple, also defines a reader
-      def attribute(name, type)
-        raise ArgumentError unless type < Refined
+      def attribute(name, type = nil, &block)
+        if type.nil?
+          type = type_from_block(&block)
+        else
+          raise ArgumentError unless type < Refined
+        end
+
         @attributes << type
         @names << name
+
         define_method(name) do
           match.context.dig(:attributes, name)
         end
@@ -64,6 +70,18 @@ module BloodContracts::Core
       end
 
       private
+
+      # Generate an anonimous type from a block
+      #
+      # @param Proc block which will be evaluated in a context
+      # of our anonimous type
+      #
+      # @return Class
+      #
+      def type_from_block(&block)
+        raise ArgumentError unless block_given?
+        Class.new(Refined) { class_eval(&block) }
+      end
 
       # Handle arguments passed as hash with string or
       # symbol keys

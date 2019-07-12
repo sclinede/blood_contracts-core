@@ -179,10 +179,10 @@ RSpec.describe BloodContracts::Core do
     subject { Test::RegistrationInput.match(email, password) }
 
     context "when valid input" do
-      shared_examples "is valid" do
+      shared_examples "is valid" do |options = {}|
         it do
           expect(subject).to be_valid
-          expect(subject.attributes).to match(attributes)
+          expect(subject.attributes).to match(attributes) unless options[:without_attributes]
           expect(subject.to_h).to match(email: email, password: password)
           expect(subject.errors).to be_empty
           expect(subject.attribute_errors).to be_empty
@@ -196,6 +196,64 @@ RSpec.describe BloodContracts::Core do
       end
 
       include_examples "is valid"
+
+      context "when attributes are defined inline" do
+        before do
+          module Test
+            class InlineRegistrationInput < ::BC::Tuple
+              attribute :email do
+                EMAIL_REGEX = /\A[\w+\-.]+@[a-z\d\-]+(\.[a-z\d\-]+)*\.[a-z]+\z/i
+
+                def match
+                  context[:email] = unpack_refined(value).to_s
+                  return if context[:email] =~ EMAIL_REGEX
+
+                  failure("Not an email")
+                end
+
+                def mapped
+                  context[:email]
+                end
+              end
+
+              attribute :password do
+                ASCII_REGEX = /^[[:ascii:]]+$/i
+
+                def match
+                  context[:ascii_string] = value.to_s
+                  return if context[:ascii_string] =~ ASCII_REGEX
+
+                  failure("Not ASCII")
+                end
+
+                def mapped
+                  context[:ascii_string]
+                end
+              end
+            end
+          end
+        end
+
+        subject { Test::InlineRegistrationInput.match(email, password) }
+
+        include_examples "is valid", without_attributes: true
+
+        context "when input is invalid" do
+          let(:email) { "admin" }
+          let(:email_error) { ["Not an email"] }
+          let(:password) { "newP@ssw0rd" }
+          let(:attribute_errors) { { email: kind_of(BC::ContractFailure) } }
+          let(:tuple_invalid) { { Test::InlineRegistrationInput => [:invalid_tuple] } }
+
+          it do
+            expect(subject).to be_invalid
+            expect(subject.to_h[:email].values).to match([email_error])
+            expect(subject.errors.first.values).to eq([email_error])
+            expect(subject.errors.last).to eq(tuple_invalid)
+            expect(subject.attribute_errors).to match(attribute_errors)
+          end
+        end
+      end
 
       context "when input is a Hash" do
         subject do
