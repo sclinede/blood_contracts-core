@@ -344,7 +344,7 @@ module Registration
     # defines a reader and applies validation on `.match` call
     attribute :login, Email.or_a(Phone)
     attribute :password, Ascii
-    # defines an attribute using the anonimous type class
+    # defines an attribute using the anonymous type class
     attribute :remember_me do
       def match
         value.to_s.in? ["checked", ""]

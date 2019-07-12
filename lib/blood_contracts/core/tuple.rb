@@ -42,7 +42,7 @@ module BloodContracts::Core
       # Helper which registers attribute in the Tuple, also defines a reader
       def attribute(name, type = nil, &block)
         if type.nil?
-          type = type_from_block(&block)
+          type = type_from_block(name, &block)
         else
           raise ArgumentError unless type < Refined
         end
@@ -71,16 +71,22 @@ module BloodContracts::Core
 
       private
 
-      # Generate an anonimous type from a block
+      # Generate an anonymous type from a block
+      #
+      # @param String name of the attribute to define the type for
       #
       # @param Proc block which will be evaluated in a context
-      # of our anonimous type
+      # of our anonymous type
       #
       # @return Class
       #
-      def type_from_block(&block)
+      def type_from_block(name, &block)
         raise ArgumentError unless block_given?
-        Class.new(Refined) { class_eval(&block) }
+
+        const_set(
+          "InlineType_#{name.to_s.capitalize}",
+          Class.new(Refined) { class_eval(&block) }
+        )
       end
 
       # Handle arguments passed as hash with string or
