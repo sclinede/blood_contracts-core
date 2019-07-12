@@ -68,6 +68,14 @@ module BloodContracts::Core
       # Handle arguments passed as hash with string or
       # symbol keys
       #
+      # @param [Array<Object>] *args that can contain an array of arguments
+      # or a single Hash we're looking for
+      #
+      # @param [Hash<Object, Object>] **kwargs hash that can be converted to
+      # args when args array is empty
+      #
+      # @return [Array<Object>]
+      #
       def lookup_hash_args(*args, **kwargs)
         if args.empty?
           [kwargs]
