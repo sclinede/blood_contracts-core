@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 Features:
 
-`BC::Tuple#match` can accept arguments as a Hash.
+- `BC::Tuple#argument` accepts an optional block to define the attribute class dynamically
+- `BC::Tuple#match` can accept arguments as a Hash
 
 ## [0.4.1] - [2019-07-04]
 
