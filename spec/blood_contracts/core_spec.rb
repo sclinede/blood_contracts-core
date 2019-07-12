@@ -182,7 +182,9 @@ RSpec.describe BloodContracts::Core do
       shared_examples "is valid" do |options = {}|
         it do
           expect(subject).to be_valid
-          expect(subject.attributes).to match(attributes) unless options[:without_attributes]
+          unless options[:without_attributes]
+            expect(subject.attributes).to match(attributes)
+          end
           expect(subject.to_h).to match(email: email, password: password)
           expect(subject.errors).to be_empty
           expect(subject.attribute_errors).to be_empty
@@ -240,16 +242,27 @@ RSpec.describe BloodContracts::Core do
 
         context "when input is invalid" do
           let(:email) { "admin" }
-          let(:email_error) { ["Not an email"] }
+          let(:dynamic_email_type) do
+            Test::InlineRegistrationInput::InlineType_Email
+          end
+          let(:dynamic_password_type) do
+            Test::InlineRegistrationInput::InlineType_Password
+          end
+          let(:email_error) { { dynamic_email_type => ["Not an email"] } }
           let(:password) { "newP@ssw0rd" }
+          let(:attributes) do
+            attribute_errors.merge(password: kind_of(dynamic_password_type))
+          end
           let(:attribute_errors) { { email: kind_of(BC::ContractFailure) } }
-          let(:tuple_invalid) { { Test::InlineRegistrationInput => [:invalid_tuple] } }
+          let(:tuple_invalid) do
+            { Test::InlineRegistrationInput => [:invalid_tuple] }
+          end
 
           it do
             expect(subject).to be_invalid
-            expect(subject.to_h[:email].values).to match([email_error])
-            expect(subject.errors.first.values).to eq([email_error])
-            expect(subject.errors.last).to eq(tuple_invalid)
+            expect(subject.attributes).to match(attributes)
+            expect(subject.to_h).to match(email: email_error)
+            expect(subject.errors).to match_array([email_error, tuple_invalid])
             expect(subject.attribute_errors).to match(attribute_errors)
           end
         end
