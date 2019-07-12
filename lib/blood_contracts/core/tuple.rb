@@ -1,3 +1,7 @@
+require_relative "../ext/symbolize_keys.rb"
+
+using BloodContracts::SymbolizeKeys
+
 module BloodContracts::Core
   # Meta refinement type, represents product of several refinement types
   class Tuple < Refined
@@ -20,6 +24,8 @@ module BloodContracts::Core
       #
       # rubocop:disable Style/SingleLineMethods
       def new(*args, **kwargs, &block)
+        args = lookup_hash_args(*args, kwargs)
+
         return super(*args, **kwargs) if @finalized
         names = args.pop.delete(:names) if args.last.is_a?(Hash)
 
@@ -55,6 +61,21 @@ module BloodContracts::Core
         new_klass.instance_variable_set(:@finalized, true)
         new_klass.failure_klass ||= TupleContractFailure
         super
+      end
+
+      private
+
+      # Handle arguments passed as hash with string or
+      # symbol keys
+      #
+      def lookup_hash_args(*args, **kwargs)
+        if args.empty?
+          [kwargs]
+        elsif args.length == 1 && args.last.is_a?(Hash)
+          [args.first.symbolize_keys]
+        else
+          args
+        end
       end
     end
 
