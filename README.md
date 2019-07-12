@@ -348,6 +348,12 @@ module Registration
 end
 ```
 
+Tuple can accept either a list of arguments or a hash:
+```ruby
+Registration::Form.match(login, password)
+Registration::Form.match(login: login, password: password)
+```
+
 And the code that you'll put in your controller is something like that:
 
 ```ruby

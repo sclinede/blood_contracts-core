@@ -179,18 +179,40 @@ RSpec.describe BloodContracts::Core do
     subject { Test::RegistrationInput.match(email, password) }
 
     context "when valid input" do
+      shared_examples "is valid" do
+        it do
+          expect(subject).to be_valid
+          expect(subject.attributes).to match(attributes)
+          expect(subject.to_h).to match(email: email, password: password)
+          expect(subject.errors).to be_empty
+          expect(subject.attribute_errors).to be_empty
+        end
+      end
+
       let(:email) { "admin@mail.com" }
       let(:password) { "newP@ssw0rd" }
       let(:attributes) do
         { email: kind_of(Test::Email), password: kind_of(Test::Ascii) }
       end
 
-      it do
-        expect(subject).to be_valid
-        expect(subject.attributes).to match(attributes)
-        expect(subject.to_h).to match(email: email, password: password)
-        expect(subject.errors).to be_empty
-        expect(subject.attribute_errors).to be_empty
+      include_examples "is valid"
+
+      context "when input is a Hash" do
+        subject do
+          Test::RegistrationInput.match(password: password, email: email)
+        end
+
+        include_examples "is valid"
+
+        context "when keys are strings" do
+          subject do
+            Test::RegistrationInput.match(
+              "password" => password, "email" => email
+            )
+          end
+
+          include_examples "is valid"
+        end
       end
     end
 
