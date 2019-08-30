@@ -5,7 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## master
+## [0.4.4] - [2019-08-30]
+
+Features/Fixes:
+- Changed the way we treat context in Sum and Tuple. Each validation of those aggregations now uses its own context.
+  In other word, each validation path has its own context, which will not be corrupted in parallel validaions.
+  If validation succeded we return the only valid context, otherwise if we failed on Tuple or Sum we return set of
+  contexts, to inspect why did validation fail.
+
+## [0.4.3] - yanked
+
+## [0.4.2] - [2019-08-29]
 
 Features:
 
