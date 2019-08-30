@@ -13,6 +13,17 @@ module BloodContracts::Core
       @context[:errors] = (@context[:errors].to_a << @value.to_h)
     end
 
+    # Merge errors with the errors of another ContractFailure
+    #
+    # @param contract_failure [ContractFailure] other errors container which to
+    #   merge with
+    # @return [ContractFailure]
+    #
+    def merge!(contract_failure)
+      @context[:errors] = @context[:errors].to_a + contract_failure.errors
+      self
+    end
+
     # List of errors per type after the data matching process
     #
     # @return [Array<Hash<BC::Refined, String>>]

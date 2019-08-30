@@ -17,6 +17,14 @@ module BloodContracts::Core
       attributes.select { |_name, type| type.invalid? }
     end
 
+    # Contexts for subset of attributes which are invalid
+    #
+    # @return [Hash<String, ContractFailure>]
+    #
+    def attribute_contexts
+      attribute_errors.transform_values!(&:context)
+    end
+
     # Unpacked matching errors in form of a hash per attribute
     #
     # @return [Hash<String, ContractFailure>]

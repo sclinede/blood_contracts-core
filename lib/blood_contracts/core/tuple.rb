@@ -143,10 +143,12 @@ module BloodContracts::Core
     def match
       @matches = attributes_enumerator.map do |(type, value), index|
         attribute_name = self.class.names[index]
-        attributes.store(attribute_name, type.match(value, context: @context))
+        attributes.store(
+          attribute_name, type.match(value, context: @context.dup)
+        )
       end
-      return if @matches.find(&:invalid?).nil?
-      failure(:invalid_tuple)
+      return if (failures = @matches.select(&:invalid?)).empty?
+      failures.unshift(failure).reduce(:merge!)
     end
 
     # Turns match into array of unpacked values
@@ -188,6 +190,14 @@ module BloodContracts::Core
     #
     def attribute_errors
       {}
+    end
+
+    # Helper to build a ContractFailure with shared context
+    #
+    # @return [ContractFailure]
+    #
+    private def failure(*)
+      self.class.failure_klass.new(context: @context)
     end
 
     # @private

@@ -108,12 +108,8 @@ RSpec.describe BloodContracts::Core do
     context "when login is valid" do
       context "when login is email" do
         let(:login) { "admin@example.com" }
-        let(:errors) { [{ Test::Phone => ["Not a phone"] }] }
         let(:validation_context) do
           hash_including(
-            phone: login,
-            clean_phone: login,
-            errors: errors,
             email: login
           )
         end
@@ -129,13 +125,10 @@ RSpec.describe BloodContracts::Core do
       context "when login is phone" do
         let(:login) { "8(800) 200 - 11 - 00" }
         let(:cleaned_phone) { "88002001100" }
-        let(:errors) { [{ Test::Email => ["Not an email"] }] }
         let(:validation_context) do
           hash_including(
             phone: login,
-            clean_phone: cleaned_phone,
-            errors: errors,
-            email: login
+            clean_phone: cleaned_phone
           )
         end
 
@@ -153,15 +146,13 @@ RSpec.describe BloodContracts::Core do
       let(:errors) do
         [
           { Test::Email => ["Not an email"] },
-          { Test::Phone => ["Not a phone"] },
-          { Test::Login => [:no_matches] }
+          { Test::Phone => ["Not a phone"] }
         ]
       end
 
       it do
         is_expected.to be_invalid
         expect(subject.errors).to match_array(errors)
-        expect(subject.unpack).to match({ Test::Login => [:no_matches] })
       end
     end
   end
@@ -254,15 +245,12 @@ RSpec.describe BloodContracts::Core do
             attribute_errors.merge(password: kind_of(dynamic_password_type))
           end
           let(:attribute_errors) { { email: kind_of(BC::ContractFailure) } }
-          let(:tuple_invalid) do
-            { Test::InlineRegistrationInput => [:invalid_tuple] }
-          end
 
           it do
             expect(subject).to be_invalid
             expect(subject.attributes).to match(attributes)
             expect(subject.to_h).to match(email: email_error)
-            expect(subject.errors).to match_array([email_error, tuple_invalid])
+            expect(subject.errors).to match_array([email_error])
             expect(subject.attribute_errors).to match(attribute_errors)
           end
         end
@@ -295,13 +283,12 @@ RSpec.describe BloodContracts::Core do
         attribute_errors.merge(password: kind_of(Test::Ascii))
       end
       let(:attribute_errors) { { email: kind_of(BC::ContractFailure) } }
-      let(:tuple_invalid) { { Test::RegistrationInput => [:invalid_tuple] } }
 
       it do
         expect(subject).to be_invalid
         expect(subject.attributes).to match(attributes)
         expect(subject.to_h).to match(email: email_error)
-        expect(subject.errors).to match_array([email_error, tuple_invalid])
+        expect(subject.errors).to match_array([email_error])
         expect(subject.attribute_errors).to match(attribute_errors)
       end
     end
@@ -347,19 +334,22 @@ RSpec.describe BloodContracts::Core do
     context "when value is valid JSON" do
       context "when value is invalid registration data" do
         let(:response) { '{"phone":"+78889992211"}' }
-        let(:error) { { Test::RegistrationInput => [:invalid_tuple] } }
-        let(:errors) do
+        let(:error) do
           [
             { Test::Email => ["Not an email"] },
             { Test::Phone => ["Not a phone"] },
-            { Test::Ascii => ["Not ASCII"] },
-            { Test::RegistrationInput => [:invalid_tuple] }
+            { Test::Ascii => ["Not ASCII"] }
           ]
         end
-        let(:validation_context) do
+        let(:password_errors) do
+          [
+            { Test::Ascii => ["Not ASCII"] }
+          ]
+        end
+        let(:password_context) do
           hash_including(
             raw_value: response,
-            errors: array_including(errors),
+            errors: array_including(password_errors),
             steps: ["Test::Json", "BloodContracts::Core::TupleContractFailure"],
             steps_values: {
               parse: response,
@@ -367,12 +357,35 @@ RSpec.describe BloodContracts::Core do
             }
           )
         end
+        let(:login_errors) do
+          [
+            { Test::Email => ["Not an email"] },
+            { Test::Phone => ["Not a phone"] }
+          ]
+        end
+        let(:login_context) do
+          hash_including(
+            raw_value: response,
+            errors: array_including(login_errors),
+            steps: ["Test::Json", "BloodContracts::Core::TupleContractFailure"],
+            steps_values: {
+              parse: response,
+              validate: { phone: "+78889992211" }
+            }
+          )
+        end
+        let(:validation_context) do
+          {
+            login: login_context,
+            password: password_context
+          }
+        end
 
         it do
           is_expected.to be_invalid
           is_expected.to be_kind_of(BC::TupleContractFailure)
-          expect(subject.unpack).to match(error)
-          expect(subject.context).to match(validation_context)
+          expect(subject.attribute_contexts).to match(validation_context)
+          expect(subject.errors).to match(error)
         end
       end
 

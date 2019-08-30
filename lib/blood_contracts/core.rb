@@ -8,6 +8,7 @@ module BloodContracts
     require_relative "./core/pipe.rb"
     require_relative "./core/contract.rb"
     require_relative "./core/sum.rb"
+    require_relative "./core/sum_contract_failure.rb"
     require_relative "./core/tuple.rb"
     require_relative "./core/tuple_contract_failure.rb"
 

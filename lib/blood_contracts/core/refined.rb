@@ -41,7 +41,7 @@ module BloodContracts::Core
 
       # Override of case equality operator, to handle Tuple correctly
       def ===(object)
-        return object.to_ary.any?(self) if object.is_a?(Tuple)
+        return object.attributes.values.any?(self) if object.is_a?(Tuple)
         super
       end
 

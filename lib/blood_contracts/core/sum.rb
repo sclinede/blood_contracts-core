@@ -63,6 +63,15 @@ module BloodContracts::Core
         return super if name
         "Sum(#{sum_of.map(&:inspect).join(',')})"
       end
+
+      # Inheritance handler:
+      # - adds current sum_of to child
+      # - sets default value for failure_klass
+      def inherited(new_klass)
+        new_klass.instance_variable_set(:@sum_of, sum_of)
+        new_klass.failure_klass ||= SumContractFailure
+        super
+      end
     end
 
     # The type which is the result of data matching process
@@ -72,13 +81,13 @@ module BloodContracts::Core
     #
     def match
       @or_matches = self.class.sum_of.map do |type|
-        type.match(@value, context: @context)
+        type.match(@value, context: @context.dup)
       end
 
       if (match = @or_matches.find(&:valid?))
         match
       else
-        failure(:no_matches)
+        @or_matches.dup.unshift(failure).reduce(:merge!)
       end
     end
 
@@ -88,6 +97,16 @@ module BloodContracts::Core
     #
     def errors
       @context[:errors]
+    end
+
+    # Helper to build a ContractFailure with shared context
+    #
+    # @return [ContractFailure]
+    #
+    private def failure(*)
+      sum_context = @or_matches.map(&:context)
+      @context[:sum_failure_contexts] = sum_context
+      self.class.failure_klass.new(context: @context)
     end
 
     # @private
